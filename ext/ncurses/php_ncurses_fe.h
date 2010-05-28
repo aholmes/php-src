@@ -109,6 +109,8 @@ PHP_FUNCTION(ncurses_filter);
 PHP_FUNCTION(ncurses_noqiflush);
 PHP_FUNCTION(ncurses_qiflush);
 PHP_FUNCTION(ncurses_timeout);
+PHP_FUNCTION(ncurses_notimeout);
+PHP_FUNCTION(ncurses_gettimeout);
 PHP_FUNCTION(ncurses_use_env);
 PHP_FUNCTION(ncurses_addstr);
 PHP_FUNCTION(ncurses_putp);

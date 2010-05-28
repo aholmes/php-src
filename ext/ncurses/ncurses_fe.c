@@ -146,6 +146,8 @@ zend_function_entry ncurses_functions[] = {
 	PHP_FE(ncurses_noqiflush,		NULL)
 	PHP_FE(ncurses_qiflush,			NULL)
 	PHP_FE(ncurses_timeout,			NULL)
+	PHP_FE(ncurses_notimeout,		NULL)
+	PHP_FE(ncurses_gettimeout,		NULL)
 	PHP_FE(ncurses_use_env,			NULL)
 	PHP_FE(ncurses_addstr,			NULL)
 	PHP_FE(ncurses_putp,			NULL)

@@ -1166,7 +1166,27 @@ PHP_FUNCTION(ncurses_timeout)
 		return;
 	}
 	IS_NCURSES_INITIALIZED();
+	le_ncurses_timeout=intarg;
 	timeout(intarg);
+}
+/* }}} */
+
+/* {{{ proto void ncurses_timeout(int millisec)
+   Sets timeout for special key sequences to -1 (blocking) */
+PHP_FUNCTION(ncurses_notimeout)
+{
+	IS_NCURSES_INITIALIZED();
+	le_ncurses_timeout=-1;
+	timeout(-1);
+}
+/* }}} */
+
+/* {{{ proto void ncurses_gettimeout()
+   Gets timeout for special key sequences */
+PHP_FUNCTION(ncurses_gettimeout)
+{
+	IS_NCURSES_INITIALIZED();
+	RETURN_LONG(le_ncurses_timeout);
 }
 /* }}} */
 

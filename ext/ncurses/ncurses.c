@@ -28,6 +28,7 @@
 ZEND_DECLARE_MODULE_GLOBALS(ncurses)
 
 /* True global resources - no need for thread safety here */
+long le_ncurses_timeout;
 int le_ncurses_windows;
 #if HAVE_NCURSES_PANEL
 int le_ncurses_panels;
@@ -243,6 +244,7 @@ PHP_MINIT_FUNCTION(ncurses)
 
 	ZEND_INIT_MODULE_GLOBALS(ncurses, php_ncurses_init_globals, NULL);
 
+	le_ncurses_timeout = -1;
 	le_ncurses_windows = zend_register_list_destructors_ex(ncurses_destruct_window, NULL, "ncurses_window", module_number);
 #if HAVE_NCURSES_PANEL
 	le_ncurses_panels = zend_register_list_destructors_ex(ncurses_destruct_panel, NULL, "ncurses_panel", module_number);

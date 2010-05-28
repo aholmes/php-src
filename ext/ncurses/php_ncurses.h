@@ -25,6 +25,8 @@
 # include <curses.h>
 #endif
 
+extern long le_ncurses_timeout;
+
 extern int le_ncurses_windows;
 
 #if HAVE_NCURSES_PANEL
