@@ -49,6 +49,7 @@ zend_function_entry pcntl_functions[] = {
 	PHP_FE(pcntl_waitpid,		second_arg_force_ref)
 	PHP_FE(pcntl_wait,		first_arg_force_ref)
 	PHP_FE(pcntl_signal,		NULL)
+	PHP_FE(pcntl_signal_dispatch,	NULL)
 	PHP_FE(pcntl_wifexited,		NULL)
 	PHP_FE(pcntl_wifstopped,	NULL)
 	PHP_FE(pcntl_wifsignaled,	NULL)
@@ -722,7 +723,7 @@ void pcntl_tick_handler()
 }
 
 /* php 5.2.6 signal dispatch patch */
-void pcntl_signal_dispatch()
+PHP_FUNCTION(pcntl_signal_dispatch)
 {
        zval *param, **handle, *retval;
        struct php_pcntl_pending_signal *queue, *next;
