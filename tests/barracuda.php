@@ -1,5 +1,7 @@
 <?php
 
+$fail = false;
+
 /**************************
  *           pcntl        *
  **************************/
@@ -9,29 +11,31 @@ echo "
  **************************/
 ";
 
-echo "Installing signal handler...\n";
-pcntl_signal(SIGHUP, 'sig');
+if (!function_exists('pcntl_signal_dispatch'))
+{
+	echo "FAIL\npcntl_signal_dispatch does not exist";
+	$fail = true;
+}
+
+if (!$fail)
+{
+	echo "Installing signal handler...\n";
+	pcntl_signal(SIGHUP, 'sig');
+
+
+	echo "Generating signal SIGHUP to self...\n";
+	posix_kill(posix_getpid(), SIGHUP);
+
+	echo "pcntl_signal_dispatch exists, calling it...\n";
+	pcntl_signal_dispatch();
+}
 
 function sig($signo)
 {
      echo "signal handler called\n";
 }
 
-echo "Generating signal SIGHUP to self...\n";
-posix_kill(posix_getpid(), SIGHUP);
-
-if (function_exists('pcntl_signal_dispatch'))
-{
-	echo "pcntl_signal_dispatch exists, calling it...\n";
-	pcntl_signal_dispatch();
-}
-else
-{
-	echo "pcntl_signal_dispatch does not exist, generating tick...\n";
-	declare(ticks = 1);
-	usleep(1);
-}
-
+$fail = false;
 sleep(3);
 
 /**************************
@@ -43,26 +47,40 @@ echo "
  **************************/
 ";
 
-ncurses_init();
+if (!function_exists('ncurses_notimeout'))
+{
+	echo "FAIL\nncurses_notimeout does not exist\n";
+	$fail = true;
+}
+if (!function_exists('ncurses_gettimeout'))
+{
+	echo "FAIL\nncurses_gettimeout does not exist\n";
+	$fail = true;
+}
 
-ncurses_addstr("ncurses_timeout = ".ncurses_gettimeout()."\n\n");
+if (!$fail)
+{
+	ncurses_init();
 
-ncurses_addstr("Setting timeout to 100\n");
-ncurses_timeout(100);
-ncurses_addstr("ncurses_timeout = ".ncurses_gettimeout()."\n\n");
+	ncurses_addstr("ncurses_timeout = ".ncurses_gettimeout()."\n\n");
 
-ncurses_refresh();
-loop();
+	ncurses_addstr("Setting timeout to 100\n");
+	ncurses_timeout(100);
+	ncurses_addstr("ncurses_timeout = ".ncurses_gettimeout()."\n\n");
 
-ncurses_addstr("\nRemoving timeout\n");
-ncurses_notimeout();
-ncurses_addstr("ncurses_timeout = ".ncurses_gettimeout()."\n\n");
-ncurses_refresh();
-loop();
+	ncurses_refresh();
+	loop();
 
-sleep(1);
+	ncurses_addstr("\nRemoving timeout\n");
+	ncurses_notimeout();
+	ncurses_addstr("ncurses_timeout = ".ncurses_gettimeout()."\n\n");
+	ncurses_refresh();
+	loop();
 
-ncurses_end();
+	sleep(1);
+
+	ncurses_end();
+}
 
 function loop()
 {
@@ -77,6 +95,7 @@ function loop()
 	ncurses_refresh();
 }
 
+$fail = false;
 sleep(3);
 
 /**************************
