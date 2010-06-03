@@ -102,6 +102,7 @@ PHP_FUNCTION(ncurses_slk_set);
 PHP_FUNCTION(ncurses_typeahead);
 PHP_FUNCTION(ncurses_ungetch);
 PHP_FUNCTION(ncurses_vidattr);
+PHP_FUNCTION(ncurses_wresize);
 PHP_FUNCTION(ncurses_wrefresh);
 PHP_FUNCTION(ncurses_use_extended_names);
 PHP_FUNCTION(ncurses_bkgdset);

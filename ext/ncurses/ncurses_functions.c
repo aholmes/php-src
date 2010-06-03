@@ -1787,6 +1787,25 @@ PHP_FUNCTION(ncurses_mvwaddstr)
 }
 /* }}} */
 
+/* {{{ proto int ncurses_wresize(resource window)
+   Resize window on terminal screen */
+PHP_FUNCTION(ncurses_wresize)
+{
+	zval *handle;
+	WINDOW **w;
+	long lines;
+	long columns;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &handle, &lines, &columns) == FAILURE) {
+		return;
+	}
+
+	FETCH_WINRES(w, &handle);
+
+	RETURN_LONG(wresize(*w, lines, columns));
+}
+/* }}} */
+
 /* {{{ proto int ncurses_wrefresh(resource window)
    Refreshes window on terminal screen */
 PHP_FUNCTION(ncurses_wrefresh)
