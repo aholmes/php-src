@@ -2388,13 +2388,13 @@ PHP_FUNCTION(ncurses_move_panel)
 	PANEL **panel;
 	long startx, starty;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &handle, &startx, &starty) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &handle, &starty, &startx) == FAILURE) {
 		return;
 	}
 
 	FETCH_PANEL(panel, &handle);
 
-	RETURN_LONG(move_panel(*panel, startx, starty));
+	RETURN_LONG(move_panel(*panel, starty, startx));
 
 }
 /* }}} */
