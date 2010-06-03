@@ -34,6 +34,8 @@ int le_ncurses_windows;
 int le_ncurses_panels;
 #endif
 
+static char *ncurses_terminal_tty;
+
 static void ncurses_destruct_window(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	WINDOW **pwin = (WINDOW **)rsrc->ptr;
@@ -51,6 +53,88 @@ static void ncurses_destruct_panel(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	efree(ppanel);
 }
 #endif
+
+/* Find the TTY of the currently running script */
+char *ncurses_term_gettty()
+{
+	char *tty;
+	int fd;
+	char *errdesc;
+
+	tty = ttyname(STDIN_FILENO);
+
+	/* this should determine if the tty was already found first */
+	if (tty)
+	{
+		fd = open(tty, O_RDONLY);
+		if (isatty(fd))
+		{
+			/* tty will probably be /proc/self/fd/0 */
+			close(fd);
+
+			/* save our global variable */
+			ncurses_terminal_tty = malloc(strlen(tty)+1);
+			strcpy(ncurses_terminal_tty,tty);
+
+			return tty; // PHP handles putting a \0 on the end of this string
+		}
+		sprintf(errdesc, "Could not open fd to %s\n", tty);
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, errdesc);
+	}
+	sprintf(errdesc, "%s is not a TTY", tty);
+	php_error_docref(NULL TSRMLS_CC, E_ERROR, errdesc);
+
+	free(tty);
+	tty = NULL;
+
+	return "\0";
+}
+
+/* {{{ find the size of the terminal this script is running in, or the size of the terminal supplied
+ */
+struct winsize ncurses_term_getsize(char * tty)
+{
+	struct winsize sz;
+	int fd;
+	char *errdesc;
+
+	if (!tty)
+		tty = ncurses_term_gettty();
+
+	fd = open(tty, O_RDONLY);
+
+	/* if we can't find the terminal size, spit an error */
+	if (ioctl(fd, TIOCGWINSZ, &sz) == -1)
+	{
+		/* Error */
+	}
+	else
+	{
+		return sz;
+	}
+
+	if (NCURSES_G(registered_constants))
+		endwin();
+
+	/* what error happened? */
+	switch(errno)
+	{
+		case EBADF:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Supplied file is not valid file descriptor");
+		break;
+		case ENOTTY:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Supplied file '%s' is not associated with a special character device. The specified request does not apply to the kind of object that the descriptor references");
+		break;
+		default:
+			sprintf(errdesc, "Unhandled error when fetching TIOCGWINSZ: %d: %s\n",errno,strerror(errno));
+			if (errno != 0) php_error_docref(NULL TSRMLS_CC, E_ERROR, errdesc);
+	}
+
+	close(fd);
+
+	return sz;
+}
+/* }}} */
 
 /* {{{ ncurses_module_entry
  */

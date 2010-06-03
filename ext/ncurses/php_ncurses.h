@@ -25,6 +25,16 @@
 # include <curses.h>
 #endif
 
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+char *ncurses_term_gettty();
+struct winsize ncurses_term_getsize(char *);
+static char *ncurses_terminal_tty;
+
 extern long le_ncurses_timeout;
 
 extern int le_ncurses_windows;

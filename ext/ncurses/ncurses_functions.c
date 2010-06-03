@@ -1190,6 +1190,29 @@ PHP_FUNCTION(ncurses_gettimeout)
 }
 /* }}} */
 
+/* {{{ proto void ncurses_gettermsize()
+   Gets the size of the current terminal or the supplied terminal and return an array of (rows,columns) */
+PHP_FUNCTION(ncurses_gettermsize)
+{
+	struct winsize sz;
+	char *terminal = NULL;
+
+	zval *param;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|s", &terminal, &param) == FAILURE)
+	{
+		return;
+	}
+
+	sz = ncurses_term_getsize(terminal);
+
+	array_init(return_value);
+ 
+ 
+	add_index_long(return_value, 0, (long int)sz.ws_row);
+	add_index_long(return_value, 1, (long int)sz.ws_col);
+}
+/* }}} */
+
 /* {{{ proto void ncurses_use_env(int flag)
    Controls use of environment information about terminal size */
 PHP_FUNCTION(ncurses_use_env)
