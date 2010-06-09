@@ -1823,6 +1823,23 @@ PHP_FUNCTION(ncurses_wrefresh)
 }
 /* }}} */
 
+/* {{{ proto int ncurses_resizeterm(int lines, int columns)
+   Creates a new window */
+PHP_FUNCTION(ncurses_resizeterm)
+{
+	long lines,cols;
+	WINDOW **pwin; 
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ll", &lines, &cols) == FAILURE) {
+		return;
+	}
+
+	IS_NCURSES_INITIALIZED();
+
+	RETURN_LONG(resize_term(lines,cols));
+}
+/* }}} */
+
 /* {{{ proto string ncurses_termname(void)
    Returns terminal name */
 PHP_FUNCTION(ncurses_termname)

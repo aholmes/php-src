@@ -139,6 +139,7 @@ zend_function_entry ncurses_functions[] = {
 	PHP_FE(ncurses_vidattr, 		NULL)
 	PHP_FE(ncurses_wresize,			NULL)
 	PHP_FE(ncurses_wrefresh,		NULL)
+	PHP_FE(ncurses_resizeterm,		NULL)
 #ifdef HAVE_NCURSES_USE_EXTENDED_NAMES
 	PHP_FE(ncurses_use_extended_names,	NULL)
 #endif
