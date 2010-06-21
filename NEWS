@@ -18,10 +18,15 @@ PHP                                                                        NEWS
 - Fixed a possible arbitrary memory access inside sqlite extension. Reported
   by Mateusz Kocielski. (Ilia)  
 
+- Fixed bug #52041 (Memory leak when writing on uninitialized variable returned
+  from function). (Dmitry)
+- Fixed bug #52019 (make lcov doesn't support TESTS variable anymore). (Patrick)
 - Fixed bug #51911 (ReflectionParameter::getDefaultValue() memory leaks with
+  constant array). (Felipe)
 - Fixed bug #51905 (ReflectionParameter fails if default value is an array
   with an access to self::). (Felipe)
-  constant array). (Felipe)
+- Fixed bug #51822i (Segfault with strange __destruct() for static class
+  variables). (Dmitry)
 - Fixed bug #51671 (imagefill does not work correctly for small images).
   (Pierre)
 - Fixed bug #51670 (getColumnMeta causes segfault when re-executing query
@@ -41,6 +46,8 @@ PHP                                                                        NEWS
   (Daniel Egeberg)
 - Fixed bug #51562 (query timeout in mssql can not be changed per query).
   (ejsmont dot artur at gmail dot com)
+- Fixed bug #51552 (debug_backtrace() causes segmentation fault and/or memory
+  issues). (Dmitry)
 - Fixed bug #51532 (Wrong prototype for SplFileObject::fscanf()). (Etienne)
 - Fixed bug #51445 (var_dump() invalid/slow *RECURSION* detection). (Felipe)
 - Fixed bug #51393 (DateTime::createFromFormat() fails if format string contains
@@ -48,6 +55,8 @@ PHP                                                                        NEWS
 - Fixed bug #51374 (Wrongly initialized object properties). (Etienne)
 - Fixed bug #51338 (URL-Rewriter is still enabled if use_only_cookies is
   on). (Ilia, j dot jeising at gmail dot com)
+- Fixed bug #51273 (Faultstring property does not exist when the faultstring is
+  empty) (Ilia, dennis at transip dot nl)
 - Fixed bug #51269 (zlib.output_compression Overwrites Vary Header). (Adam)
 - Fixed bug #51263 (imagettftext and rotated text uses wrong baseline)
   (cschneid at cschneid dot com, Takeshi Abe)
@@ -58,6 +67,8 @@ PHP                                                                        NEWS
   includes '-'). (Adam, solar at azrael dot ws).
 - Fixed bug #51190 (ftp_put() returns false when transfer was successful).
   (Ilia)
+- Fixed bug #51183 (ext/date/php_date.c fails to compile with Sun Studio).
+  (Sriram Natarajan)
 - Fixed bug #51171 (curl_setopt() doesn't output any errors or warnings when 
   an invalid option is provided). (Ilia)
 - Fixed bug #51128 (imagefill() doesn't work with large images). (Pierre)
@@ -73,6 +84,7 @@ PHP                                                                        NEWS
   include file and line in trace). (Felipe)
 - Fixed bug #49723 (LimitIterator with empty SeekableIterator). (Etienne)
 - Fixed bug #49576 (FILTER_VALIDATE_EMAIL filter needs updating) (Rasmus)
+- Fixed bug #49320 (PDO returns null when SQLite connection fails). (Felipe)
 - Fixed bug #49267 (Linking fails for iconv). (Moriyosh)
 - Fixed bug #48601 (xpath() returns FALSE for legitimate query). (Rob)
 - Fixed bug #48289 (iconv_mime_encode() quoted-printable scheme is broken).
