@@ -37,6 +37,8 @@ static char *ncurses_terminal_tty;
 
 extern long le_ncurses_timeout;
 
+extern int le_ncurses_terminals;
+
 extern int le_ncurses_windows;
 
 #if HAVE_NCURSES_PANEL

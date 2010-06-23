@@ -25,6 +25,7 @@
 #include "php_ini.h"
 #include "php_ncurses.h"
 
+#define FETCH_TERM(r, z)    ZEND_FETCH_RESOURCE(r, SCREEN **, z, -1, "ncurses_terminal", le_ncurses_terminals)
 #define FETCH_WINRES(r, z)  ZEND_FETCH_RESOURCE(r, WINDOW **, z, -1, "ncurses_window", le_ncurses_windows)
 #if HAVE_NCURSES_PANEL
 # define FETCH_PANEL(r, z)  ZEND_FETCH_RESOURCE(r, PANEL **, z, -1, "ncurses_panel", le_ncurses_panels)
@@ -34,6 +35,11 @@
 		if (!NCURSES_G(registered_constants)) { \
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must initialize ncurses via ncurses_init(), before calling any ncurses functions."); \
 			RETURN_FALSE; \
+		}
+
+#define NCURSES_INITIALIZED() \
+		if (NCURSES_G(registered_constants)) { \
+			return; \
 		}
 
 /* {{{ proto int ncurses_addch(int ch)
@@ -108,6 +114,30 @@ PHP_FUNCTION(ncurses_end)
 {
 	IS_NCURSES_INITIALIZED();
 	RETURN_LONG(endwin());             /* endialize the curses library */
+}
+/* }}} */
+
+/* {{{ proto int ncurses_delscreen(SCREEN terminal)
+   Delete a ncurses terminal */
+PHP_FUNCTION(ncurses_delscreen)
+{
+	zval *terminal;
+	SCREEN **term;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &terminal) == FAILURE) {
+		return;
+	}
+
+	FETCH_TERM(term, &terminal);
+
+	if (term)
+	{
+		zend_list_delete(Z_LVAL_P(terminal));
+	}
+	else
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid terminal was supplied");
+
+	RETURN_TRUE;
 }
 /* }}} */
 
@@ -196,6 +226,126 @@ PHP_FUNCTION(ncurses_init)
 		FREE_ZVAL(zscr);
 		NCURSES_G(registered_constants) = 1;
 	}
+}
+/* }}} */
+
+/* {{{ proto int ncurses_newterm(char *out_file, char *in_file, char *type)
+   Create a new terminal */
+PHP_FUNCTION(ncurses_newterm)
+{
+	char *type=NULL, *out_file, *in_file;
+	int type_len, out_len, in_len;
+	FILE *outfd, *infd;
+	SCREEN **terminal;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|s", &out_file, &out_len, &in_file, &in_len, &type, &type_len) == FAILURE) {
+		return;
+	}
+
+
+	if (!(outfd = fopen(out_file, "w")))
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Failed to open terminal outfd %s for O_WRONLY", out_file);
+
+	if (!(infd = fopen(in_file, "r")))
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Failed to open terminal infd %s for O_RDONLY", in_file);
+
+	terminal = (SCREEN **)emalloc(sizeof(SCREEN *));
+	*terminal=newterm(NULL, outfd, infd);
+
+	if (!*terminal) {
+		efree(terminal);
+		RETURN_FALSE;
+	}
+
+	ZEND_REGISTER_RESOURCE(return_value, terminal, le_ncurses_terminals);
+
+	NCURSES_INITIALIZED();
+
+	keypad(stdscr, TRUE);  /* enable keyboard mapping */
+	(void) nonl();         /* tell curses not to do NL->CR/NL on output */
+	(void) cbreak();       /* take input chars one at a time, no wait for \n */
+
+	if (!NCURSES_G(registered_constants)) {
+		zend_constant c;
+		
+		WINDOW **pscr = (WINDOW**)emalloc(sizeof(WINDOW *));
+		zval *zscr;
+
+		*pscr = stdscr;
+		MAKE_STD_ZVAL(zscr);
+		ZEND_REGISTER_RESOURCE(zscr, pscr, le_ncurses_windows);
+		c.value = *zscr;
+		zval_copy_ctor(&c.value);
+		c.flags = CONST_CS;
+		c.name = zend_strndup(ZEND_STRL("STDSCR"));
+		c.name_len = sizeof("STDSCR");
+		zend_register_constant(&c TSRMLS_CC);
+
+		/* we need this "interesting" arrangement because the
+		 * underlying values of the ACS_XXX defines are not
+		 * initialized until after ncurses has been initialized */
+		
+#define PHP_NCURSES_DEF_CONST(x)    \
+		ZVAL_LONG(zscr, x);         \
+		c.value = *zscr;            \
+		zval_copy_ctor(&c.value);   \
+		c.flags = CONST_CS;         \
+		c.name = zend_strndup(ZEND_STRL("NCURSES_" #x)); \
+		c.name_len = sizeof("NCURSES_" #x);                           \
+		zend_register_constant(&c TSRMLS_CC)
+		
+		PHP_NCURSES_DEF_CONST(ACS_ULCORNER);
+		PHP_NCURSES_DEF_CONST(ACS_LLCORNER);
+		PHP_NCURSES_DEF_CONST(ACS_URCORNER);
+		PHP_NCURSES_DEF_CONST(ACS_LRCORNER);
+		PHP_NCURSES_DEF_CONST(ACS_LTEE);
+		PHP_NCURSES_DEF_CONST(ACS_RTEE);
+		PHP_NCURSES_DEF_CONST(ACS_BTEE);
+		PHP_NCURSES_DEF_CONST(ACS_TTEE);
+		PHP_NCURSES_DEF_CONST(ACS_HLINE);
+		PHP_NCURSES_DEF_CONST(ACS_VLINE);
+		PHP_NCURSES_DEF_CONST(ACS_PLUS);
+		PHP_NCURSES_DEF_CONST(ACS_S1);
+		PHP_NCURSES_DEF_CONST(ACS_S9);
+		PHP_NCURSES_DEF_CONST(ACS_DIAMOND);
+		PHP_NCURSES_DEF_CONST(ACS_CKBOARD);
+		PHP_NCURSES_DEF_CONST(ACS_DEGREE);
+		PHP_NCURSES_DEF_CONST(ACS_PLMINUS);
+		PHP_NCURSES_DEF_CONST(ACS_BULLET);
+		PHP_NCURSES_DEF_CONST(ACS_LARROW);
+		PHP_NCURSES_DEF_CONST(ACS_RARROW);
+		PHP_NCURSES_DEF_CONST(ACS_DARROW);
+		PHP_NCURSES_DEF_CONST(ACS_UARROW);
+		PHP_NCURSES_DEF_CONST(ACS_BOARD);
+		PHP_NCURSES_DEF_CONST(ACS_LANTERN);
+		PHP_NCURSES_DEF_CONST(ACS_BLOCK);
+		
+		FREE_ZVAL(zscr);
+		NCURSES_G(registered_constants) = 1;
+	}
+}
+/* }}} */
+
+/* {{{ proto int ncurses_sertterm(SCREEN terminal)
+   Set the current terminal in use by ncurses */
+PHP_FUNCTION(ncurses_setterm)
+{
+	zval *terminal;
+	SCREEN **term;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &terminal) == FAILURE) {
+		return;
+	}
+
+	FETCH_TERM(term, &terminal);
+
+	if (term)
+	{
+		if (!set_term(*term))
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot setterm to supplied terminal");
+	}
+	else
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid terminal was supplied");
 }
 /* }}} */
 

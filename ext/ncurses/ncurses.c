@@ -29,12 +29,21 @@ ZEND_DECLARE_MODULE_GLOBALS(ncurses)
 
 /* True global resources - no need for thread safety here */
 long le_ncurses_timeout;
+int le_ncurses_terminals;
 int le_ncurses_windows;
 #if HAVE_NCURSES_PANEL
 int le_ncurses_panels;
 #endif
 
 static char *ncurses_terminal_tty;
+
+static void ncurses_destruct_terminal(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	SCREEN **terminal = (SCREEN **)rsrc->ptr;
+
+	delscreen(*terminal);
+	efree(terminal);
+}
 
 static void ncurses_destruct_window(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
@@ -123,10 +132,10 @@ struct winsize ncurses_term_getsize(char * tty)
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Supplied file is not valid file descriptor");
 		break;
 		case ENOTTY:
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Supplied file '%s' is not associated with a special character device. The specified request does not apply to the kind of object that the descriptor references");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Supplied file '%s' is not associated with a special character device. The specified request does not apply to the kind of object that the descriptor references", tty);
 		break;
 		default:
-			sprintf(errdesc, "Unhandled error when fetching TIOCGWINSZ: %d: %s\n",errno,strerror(errno));
+			sprintf(errdesc, "Unhandled error when fetching TIOCGWINSZ: %d\n",errno);
 			if (errno != 0) php_error_docref(NULL TSRMLS_CC, E_ERROR, errdesc);
 	}
 
@@ -329,6 +338,7 @@ PHP_MINIT_FUNCTION(ncurses)
 	ZEND_INIT_MODULE_GLOBALS(ncurses, php_ncurses_init_globals, NULL);
 
 	le_ncurses_timeout = -1;
+	le_ncurses_terminals = zend_register_list_destructors_ex(ncurses_destruct_terminal, NULL, "ncurses_terminal", module_number);
 	le_ncurses_windows = zend_register_list_destructors_ex(ncurses_destruct_window, NULL, "ncurses_window", module_number);
 #if HAVE_NCURSES_PANEL
 	le_ncurses_panels = zend_register_list_destructors_ex(ncurses_destruct_panel, NULL, "ncurses_panel", module_number);
