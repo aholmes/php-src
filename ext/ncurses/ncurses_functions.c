@@ -328,7 +328,7 @@ PHP_FUNCTION(ncurses_newterm)
 
 /* {{{ proto int ncurses_sertterm(SCREEN terminal)
    Set the current terminal in use by ncurses */
-PHP_FUNCTION(ncurses_setterm)
+PHP_FUNCTION(ncurses_set_term)
 {
 	zval *terminal;
 	SCREEN **term;

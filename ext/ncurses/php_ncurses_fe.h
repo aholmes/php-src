@@ -29,7 +29,7 @@ PHP_FUNCTION(ncurses_getch);
 PHP_FUNCTION(ncurses_has_colors);
 PHP_FUNCTION(ncurses_init);
 PHP_FUNCTION(ncurses_newterm);
-PHP_FUNCTION(ncurses_setterm);
+PHP_FUNCTION(ncurses_set_term);
 PHP_FUNCTION(ncurses_init_pair);
 PHP_FUNCTION(ncurses_color_content);
 PHP_FUNCTION(ncurses_pair_content);

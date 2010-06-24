@@ -62,7 +62,7 @@ zend_function_entry ncurses_functions[] = {
 	PHP_FE(ncurses_has_colors,		NULL)
 	PHP_FE(ncurses_init,			NULL)
 	PHP_FE(ncurses_newterm,			NULL)
-	PHP_FE(ncurses_setterm,			NULL)
+	PHP_FE(ncurses_set_term,		NULL)
 	PHP_FE(ncurses_init_pair,		NULL)
 	PHP_FE(ncurses_color_content,		second_thru_fourth_args_force_ref)
 	PHP_FE(ncurses_pair_content,		secondandthird_args_force_ref)
