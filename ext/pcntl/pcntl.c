@@ -46,6 +46,8 @@ static PHP_GINIT_FUNCTION(pcntl);
 
 zend_function_entry pcntl_functions[] = {
 	PHP_FE(pcntl_fork,			NULL)
+	PHP_FE(pcntl_clone,			NULL)
+	PHP_FE(pcntl_unshare,			NULL)
 	PHP_FE(pcntl_waitpid,		second_arg_force_ref)
 	PHP_FE(pcntl_wait,		first_arg_force_ref)
 	PHP_FE(pcntl_signal,		NULL)
@@ -94,7 +96,15 @@ ZEND_GET_MODULE(pcntl)
 static void pcntl_signal_handler(int);
 static void pcntl_signal_dispatch();
 static void pcntl_tick_handler();
-  
+
+struct pcntl_clone_args {
+	char *callback;
+	int argc;
+	zval ***params;
+};
+
+int pcntl_clone_callback(void *);
+
 void php_register_signal_constants(INIT_FUNC_ARGS)
 {
 
@@ -104,6 +114,17 @@ void php_register_signal_constants(INIT_FUNC_ARGS)
 #endif
 #ifdef WUNTRACED
 	REGISTER_LONG_CONSTANT("WUNTRACED",  (long) WUNTRACED, CONST_CS | CONST_PERSISTENT);
+#endif
+
+	/* Memory share constants */
+#ifdef CLONE_FILES
+	REGISTER_LONG_CONSTANT("CLONE_FILES",  (long) CLONE_FILES, CONST_CS | CONST_PERSISTENT);
+#endif
+#ifdef CLONE_FS
+	REGISTER_LONG_CONSTANT("CLONE_FS",  (long) CLONE_FS, CONST_CS | CONST_PERSISTENT);
+#endif
+#ifdef CLONE_NEWNS
+	REGISTER_LONG_CONSTANT("CLONE_NEWNS",  (long) CLONE_NEWNS, CONST_CS | CONST_PERSISTENT);
 #endif
 
 	/* Signal Constants */
@@ -231,6 +252,174 @@ PHP_FUNCTION(pcntl_fork)
 	}
 	
 	RETURN_LONG((long) id);
+}
+/* }}} */
+
+/* {{{ proto int pcntl_unshare(int)
+   Unshares resources with other processes*/
+PHP_FUNCTION(pcntl_unshare)
+{
+	long flags;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &flags) == FAILURE) {
+		return;
+	}
+
+	if ((flags & CLONE_FILES) || (flags & CLONE_FS) || (flags & CLONE_NEWNS)) {
+		if (unshare((int)flags) == -1) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Error %d: %s", errno, strerror(errno));
+		}
+	} else {
+		RETURN_FALSE;
+	}
+
+	RETURN_TRUE;
+}
+/* }}} */
+
+/* {{{ proto int pcntl_clone(void)
+   Clones the currently running process following the same behavior as the UNIX clone() system call*/
+PHP_FUNCTION(pcntl_clone)
+{
+	pid_t pid,wpid,ptid;
+
+	zval *retval_ptr = NULL;
+
+	char *callback;
+	zval ***params;
+	int argc = ZEND_NUM_ARGS();
+
+	unsigned long flags;
+	unsigned long i;
+
+	int stack_size = 65536;
+	void *stack = malloc(stack_size);
+
+	if (argc < 1)
+	{
+		WRONG_PARAM_COUNT;
+	}
+
+	params = safe_emalloc(sizeof(zval **), argc, 0);
+
+	/* Pull out params[0] and [1] (callback and clone flags) */
+	if (zend_get_parameters_array_ex(1, params) == FAILURE) {
+		php_error_docref1(NULL TSRMLS_CC, callback, E_WARNING, "Expected two arguments, but received zero or one argument instead");
+		efree(params);
+		RETURN_LONG((long)-1);
+	}
+
+	/* If the first argument is not a string or an array, convert that argument to a string */
+	if (Z_TYPE_PP(params[0]) != IS_STRING && Z_TYPE_PP(params[0]) != IS_ARRAY) {
+		SEPARATE_ZVAL(params[0]);
+		convert_to_string_ex(params[0]);
+	}
+
+	/* Make sure the first argument is a valid callback */
+	if (!zend_is_callable(*params[0], 0, &callback)) {
+		php_error_docref1(NULL TSRMLS_CC, callback, E_WARNING, "First argument is expected to be a valid callback");
+		efree(callback);
+		efree(params);
+		RETURN_LONG((long)-1);
+	}
+
+	/* Get all parameters (php function callback, flags, php function callback arguments) */
+	if (zend_get_parameters_array_ex(argc, params) == FAILURE) {
+		efree(callback);
+		efree(params);
+		RETURN_LONG((long)-1);
+	}
+
+	/* get clone() flags */
+	if (argc > 1 && Z_TYPE_PP(params[1]) == IS_LONG) {
+		convert_to_long_ex(params[1]);
+		flags = Z_LVAL_PP(params[1]);
+
+		/* Set the default flags to create a thread, and allow the child to signal the parent when it exits */
+//		if (flags == 0)
+//			flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND;
+			flags = SIGCHLD; // do what fork does, but with a different entry point
+	} else if (argc > 1) {
+		php_error_docref1(NULL TSRMLS_CC, callback, E_WARNING, "Second argument is expected to be an integer of clone() flags");
+		efree(callback);
+		efree(params);
+		RETURN_LONG((long)-1);
+	}
+
+	/* Allocate our struct of arguments for the PHP function callback */
+	struct pcntl_clone_args args;
+	args.callback = malloc(strlen(callback)*sizeof(char)); 
+	args.argc = argc;
+	args.params = safe_emalloc(sizeof(zval **), argc, 0);
+
+	strcpy(args.callback, callback);
+	memcpy(args.params, params, (size_t)(sizeof(zval **)*argc));
+
+	efree(callback);
+	efree(params);
+
+	/* Start a new child at pcntl_clone_callback with a pcntl_clone_args struct containing the arguments for the PHP function callback */
+	pid = clone(pcntl_clone_callback, (char *)stack+stack_size, flags, &args);
+
+	/* If the child is not sharing memory with us, free our copy of the stack, callback, and params */
+	if (!(flags & CLONE_VM))
+	{
+		free(stack);
+		free(args.callback);
+		efree(args.params);
+	}
+
+	RETURN_LONG((long) pid);
+}
+/* }}} */
+
+/* {{{ proto static void pcntl_clone_callback(void)
+   Calls a registered callback then pcntl_clone is called*/
+int pcntl_clone_callback(void *_args)
+{
+	int maxfd, fd;
+
+	/* Close all FDs except stdin, out, and err */
+//	maxfd = sysconf(_SC_OPEN_MAX);
+
+//	for(fd=3; fd < maxfd; fd++)
+//		close(fd);
+
+	zval *return_value = NULL;
+
+	struct pcntl_clone_args *args = (struct pcntl_clone_args *)_args;
+
+	int start_params_at=0;
+
+	if (args->argc == 1)
+	{
+		args->argc = 0;
+		start_params_at = 0;
+	}
+	else if (args->argc >= 2)
+	{
+		args->argc = args->argc-2;
+		start_params_at = 2;
+	}
+
+	if (call_user_function_ex(EG(function_table), NULL, *((*args).params[0]), &return_value, args->argc, (args->params)+start_params_at, 0, NULL TSRMLS_CC) == SUCCESS) {
+		efree(args->callback);
+		efree(args->params);
+		return;
+	} else {
+		if (args->argc > 1) {
+			SEPARATE_ZVAL(args->params[1]);
+			convert_to_string_ex(args->params[1]);
+			if (args->argc > 2) {
+				SEPARATE_ZVAL(args->params[2]);
+				convert_to_string_ex(args->params[2]);
+				php_error_docref1(NULL TSRMLS_CC, args->callback, E_WARNING, "Unable to call %s(%s,%s)", args->callback, Z_STRVAL_PP(args->params[1]), Z_STRVAL_PP(args->params[2]));
+			} else {
+				php_error_docref1(NULL TSRMLS_CC, args->callback, E_WARNING, "Unable to call %s(%s)", args->callback, Z_STRVAL_PP(args->params[1]));
+			}
+		} else {
+			php_error_docref1(NULL TSRMLS_CC, args->callback, E_WARNING, "Unable to call %s()", args->callback);
+		}
+	}
 }
 /* }}} */
 

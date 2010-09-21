@@ -22,8 +22,10 @@
 #define PHP_PCNTL_H
 
 #include <sys/wait.h>
+#include <sched.h>
 #include "php_signal.h"
 #include "php_ticks.h"
+#include <fcntl.h>
 extern zend_module_entry pcntl_module_entry;
 #define phpext_pcntl_ptr &pcntl_module_entry
 
@@ -41,6 +43,8 @@ PHP_MINFO_FUNCTION(pcntl);
 
 PHP_FUNCTION(pcntl_alarm);
 PHP_FUNCTION(pcntl_fork);
+PHP_FUNCTION(pcntl_clone);
+PHP_FUNCTION(pcntl_unshare);
 PHP_FUNCTION(pcntl_waitpid);
 PHP_FUNCTION(pcntl_wait);
 PHP_FUNCTION(pcntl_wifexited);
